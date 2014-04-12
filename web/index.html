@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<!--
+To change this license header, choose License Headers in Project Properties.
+To change this template file, choose Tools | Templates
+and open the template in the editor.
+-->
+<html>
+    <head>
+        <title>RWAR</title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    </head>
+    <body>
+<div>
+    <video id="live" width="320" height="240" autoplay="autoplay"
+           style="display: inline;"></video>
+    <canvas width="320" id="canvas" height="240" style="display: inline;"></canvas>
+ </div>
+<script src="http://code.jquery.com/jquery-1.11.0.min.js"></script>
+<script type="text/javascript">
+    var video = $("#live").get()[0];
+    var canvas = $("#canvas");
+    var ctx = canvas.get()[0].getContext('2d');
+    var options = {
+           "video" : true
+    };
+    var ws = new WebSocket("ws://localhost:55566/Test/LiveStreamer");
+    ws.onopen = function () {
+              console.log("Openened connection to websocket");
+    }	
+
+navigator.getMedia = ( navigator.getUserMedia ||
+                       navigator.webkitGetUserMedia ||
+                       navigator.mozGetUserMedia ||
+                       navigator.msGetUserMedia);
+
+navigator.getMedia (
+
+   // constraints
+   {
+      video: true,
+      audio: true
+   },
+
+   // successCallback
+   function(localMediaStream) {
+      var video = document.querySelector('video');
+      video.src = window.URL.createObjectURL(localMediaStream);
+      video.onloadedmetadata = function(e) {
+         // Do something with the video here.
+      };
+   },
+
+   // errorCallback
+   function(err) {
+    console.log("The following error occured: " + err);
+   }
+
+);
+
+         timer = setInterval(
+            function () {
+                ctx.drawImage(video, 0, 0, 320, 240);
+                var data = canvas.get()[0].toDataURL('image/jpeg', 1.0);
+                newblob = convertToBinary(data);
+                ws.send(newblob);
+          }, 250);
+		  
+              function convertToBinary (dataURI) {
+                  // convert base64 to raw binary data held in a string
+                  // doesn't handle URLEncoded DataURIs
+                  var byteString = atob(dataURI.split(',')[1]);
+
+                  // separate out the mime component
+                  var mimeString = dataURI.split(',')[0].split(':')[1].split(';')[0]
+
+                  // write the bytes of the string to an ArrayBuffer
+                  var ab = new ArrayBuffer(byteString.length);
+                  var ia = new Uint8Array(ab);
+                  for (var i = 0; i < byteString.length; i++) {
+                      ia[i] = byteString.charCodeAt(i);
+                  }
+
+                  // write the ArrayBuffer to a blob, and you're done
+                  var bb = new Blob([ab]);
+                  return bb;
+              }
+
+
+		  
+</script>
+
+    </body>
+</html>
